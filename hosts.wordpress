@@ -1,0 +1,34 @@
+[hypervserver]
+192.168.1.10 ansible_port=5986 ansible_connection=winrm ansible_winrm_transport=ntlm ansible_winrm_server_cert_validation=ignore  ansible_user=administrator
+
+[targetserver]
+192.168.1.68
+
+
+[k8smaster]
+#192.168.1.230
+192.168.1.233
+192.168.1.234
+
+[k8sworker]
+#192.168.1.231
+#192.168.1.232
+192.168.1.235
+
+
+[WinDNS]
+192.168.1.10 ansible_port=5986 ansible_connection=winrm ansible_winrm_transport=ntlm ansible_winrm_server_cert_validation=ignore  ansible_user=administrator
+
+[patchserver]
+spacewalk.gor.net
+
+[all:vars]
+ansible_user=root
+ansible_password=Note2020!
+
+spacewalk_user=admin
+spacewalk_password=Note2020!
+patchserver=spacewalk.gor.net
+
+dns_server=192.168.1.10
+domain=gor.net

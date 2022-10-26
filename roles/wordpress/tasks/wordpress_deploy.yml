@@ -1,0 +1,131 @@
+---
+  - name: Install prerequisites
+    apt: 
+      name: aptitude 
+      update_cache: yes 
+      state: latest 
+      force_apt_get: yes
+
+# Apache ,PHP and mysql instalaltion
+  - name: install apache2
+    apt:
+      name: "{{ item }}"
+      state: present
+    with_items:
+      - apache2
+      - mysql-server
+      - python3-pymysql
+      - php
+      - php-mysql
+      - libapache2-mod-php
+
+  - name: Install PHP Extensions
+    apt: 
+      name: "{{ item }}"
+      update_cache: yes 
+      state: latest
+    with_items:
+    - php-curl
+    - php-gd
+    - php-mbstring
+    - php-xml
+    - php-xmlrpc
+    - php-soap
+    - php-intl
+    - php-zip
+
+  # Apache Configuration
+  - name: Create document root
+    file:
+      path: "/var/www/html/wordpress"
+      state: directory
+      owner: "www-data"
+      group: "www-data"
+      mode: '0755'
+
+  - name: Set up Apache VirtualHost
+    template:
+      src: "apache.conf"
+      dest: "/etc/apache2/sites-available/apache.conf"
+
+  - name: Enable rewrite module
+    shell: /usr/sbin/a2enmod rewrite
+
+  - name: Enable new site
+    shell: /usr/sbin/a2ensite apache.conf
+
+  - name: Disable default Apache site
+    shell: /usr/sbin/a2dissite 000-default.conf
+
+
+# Mysql setup
+  - name: Set the root password
+    mysql_user:
+      name: root
+      password: sqlpassword
+      login_unix_socket: /var/run/mysqld/mysqld.sock
+      login_user: root
+      login_password: sqlpassword
+
+
+  - name: Creates database for WordPress
+    mysql_db:
+      name: "wp_db"
+      state: present
+      login_user: root
+      login_password: sqlpassword
+
+  - name: Create MySQL user for WordPress
+    mysql_user:
+      name: wp_user
+      password: sqlpassword
+      priv: "wp_db.*:ALL"
+      state: present
+      login_user: root
+      login_password: sqlpassword
+
+# UFW Configuration
+  - name: "UFW - Allow HTTP on port 80"
+    ufw:
+      rule: allow
+      port: "80"
+      proto: tcp
+
+# WordPress Configuration
+  - name: Download and unpack latest WordPress
+    unarchive:
+      src: https://wordpress.org/latest.tar.gz
+      dest: "/var/www/html"
+      remote_src: yes
+      creates: "/var/www/html/wordpress"
+
+  - name: Set ownership
+    file:
+      path: "/var/www/html"
+      state: directory
+      recurse: yes
+      owner: www-data
+      group: www-data
+
+  - name: Set permissions for directories
+    shell: "/usr/bin/find /var/www/html/wordpress/ -type d -exec chmod 750 {} \\;"
+
+  - name: Set permissions for files
+    shell: "/usr/bin/find /var/www/html/wordpress/ -type f -exec chmod 640 {} \\;"
+
+  - name: Set up wp-config
+    template:
+      src: "files/wp-config.php"
+      dest: "/var/www/html/wordpress/wp-config.php"
+
+# Restart apache service
+  - name: Reload Apache
+    service:
+      name: apache2
+      state: reloaded
+
+  - name: Restart Apache
+    service:
+      name: apache2
+      state: restarted
+
